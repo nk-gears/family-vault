@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Family Emergency Vault</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.global.prod.min.js"></script>
+<style>
+  :root{
+    --ink:#16302B;
+    --ink-soft:#1F3F38;
+    --ink-tint:#2C4F45;
+    --ink-line:#325349;
+    --paper:#EFF1EC;
+    --card:#FFFFFF;
+    --line:#DBE0D8;
+    --text:#1B2621;
+    --muted:#66756D;
+    --brass:#B8863B;
+    --brass-dark:#8F6A2C;
+    --brass-tint:#F3E9D6;
+    --danger:#A6403A;
+    --danger-soft:#F5E4E2;
+    --focus:#3E7C6A;
+    --radius-s:6px;
+    --radius-m:10px;
+    --radius-l:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Inter',sans-serif;
+    color:var(--text);
+    background:var(--paper);
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.serif{ font-family:'Source Serif 4',serif; font-weight:600; letter-spacing:-0.01em; }
+  button{ font-family:inherit; }
+  a{ color:inherit; }
+  ::selection{ background:var(--brass-tint); }
+  :focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+
+  #app{ min-height:100vh; }
+
+  /* ---------- Shell layout ---------- */
+  .shell{ display:flex; min-height:100vh; }
+  .sidebar{
+    width:250px; flex-shrink:0; background:var(--ink);
+    color:#EAF1EC; display:flex; flex-direction:column;
+    position:sticky; top:0; height:100vh; overflow-y:auto;
+  }
+  .brand{ padding:22px 20px 16px; border-bottom:1px solid var(--ink-line); }
+  .brand .mark{ display:flex; align-items:center; gap:10px; }
+  .brand .mark svg{ flex-shrink:0; }
+  .brand h1{ font-size:16.5px; margin:0; color:#F4F0E4; line-height:1.25; }
+  .brand p{ margin:4px 0 0; font-size:11.5px; color:#9FB6AB; line-height:1.4; }
+
+  .nav-groups{ padding:10px 10px 20px; flex:1; }
+  .nav-group{ margin-top:16px; }
+  .nav-group:first-child{ margin-top:8px; }
+  .nav-group-label{
+    font-size:11px; color:#7FA091; padding:0 10px 6px; letter-spacing:.02em;
+  }
+  .nav-item{
+    display:flex; align-items:center; gap:9px; width:100%; text-align:left;
+    padding:8px 10px; border:none; background:transparent; color:#D6E4DC;
+    border-radius:var(--radius-s); font-size:13.5px; cursor:pointer;
+    margin-bottom:2px; line-height:1.3;
+  }
+  .nav-item .ic{ width:16px; text-align:center; flex-shrink:0; opacity:.85; font-size:13px;}
+  .nav-item .cnt{ margin-left:auto; font-size:11px; color:#8CA79B; }
+  .nav-item:hover{ background:var(--ink-soft); }
+  .nav-item.active{ background:var(--brass); color:#241B0C; font-weight:600; }
+  .nav-item.active .cnt{ color:#4A3B1B; }
+  .nav-item.sensitive-item{ color:#F0C9C4; }
+  .nav-item.sensitive-item.active{ background:var(--danger); color:#fff; }
+
+  .sidebar-foot{ padding:14px 16px; border-top:1px solid var(--ink-line); font-size:11.5px; color:#8CA79B; }
+  .lock-pill{
+    display:flex; align-items:center; gap:7px; font-size:12px; padding:7px 9px;
+    border-radius:var(--radius-s); background:var(--ink-soft); margin-bottom:10px; cursor:pointer;
+    border:1px solid var(--ink-line); color:#EAF1EC;
+  }
+  .lock-pill:hover{ background:var(--ink-tint); }
+  .lock-dot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .lock-dot.on{ background:#7FD9A6; box-shadow:0 0 0 3px rgba(127,217,166,.18); }
+  .lock-dot.off{ background:#E0A94F; box-shadow:0 0 0 3px rgba(224,169,79,.18); }
+
+  .main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  .topbar{
+    position:sticky; top:0; z-index:5; background:rgba(239,241,236,.92); backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line); padding:14px 28px; display:flex; align-items:center; gap:14px;
+  }
+  .search-wrap{ position:relative; flex:1; max-width:420px; }
+  .search-wrap input{
+    width:100%; padding:9px 12px 9px 32px; border-radius:999px; border:1px solid var(--line);
+    background:var(--card); font-size:13.5px; color:var(--text);
+  }
+  .search-wrap .ic{ position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:13px; }
+  .top-actions{ display:flex; gap:8px; margin-left:auto; align-items:center; }
+
+  .bell-wrap{ position:relative; }
+  .bell-btn{ position:relative; }
+  .badge{
+    position:absolute; top:-4px; right:-4px; min-width:16px; height:16px; padding:0 4px;
+    border-radius:999px; background:var(--brass); color:#26190A; font-size:10.5px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; line-height:1;
+  }
+  .badge.overdue{ background:var(--danger); color:#fff; }
+  .click-catcher{ position:fixed; inset:0; z-index:39; background:transparent; }
+  .renewals-dropdown{
+    position:absolute; top:calc(100% + 8px); right:0; width:320px; max-height:380px; overflow-y:auto;
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius-m); box-shadow:0 12px 30px rgba(0,0,0,.14);
+    z-index:41; padding:8px;
+  }
+  .renewals-dropdown .rd-head{ font-size:12px; color:var(--muted); padding:6px 8px 8px; border-bottom:1px solid var(--line); margin-bottom:4px; }
+  .renewals-item{
+    display:flex; align-items:center; gap:10px; padding:9px 8px; border-radius:var(--radius-s); cursor:pointer; width:100%;
+    text-align:left; border:none; background:transparent;
+  }
+  .renewals-item:hover{ background:var(--paper); }
+  .renewals-item .ri-dot{ width:8px; height:8px; border-radius:50%; background:var(--brass); flex-shrink:0; }
+  .renewals-item.overdue .ri-dot{ background:var(--danger); }
+  .renewals-item .ri-title{ font-size:13px; font-weight:600; }
+  .renewals-item .ri-sub{ font-size:11.5px; color:var(--muted); margin-top:1px; }
+  .renewals-item .ri-when{ margin-left:auto; font-size:11.5px; font-weight:600; color:var(--brass-dark); flex-shrink:0; }
+  .renewals-item.overdue .ri-when{ color:var(--danger); }
+  .renewals-empty{ padding:22px 12px; text-align:center; color:var(--muted); font-size:13px; }
+
+  .btn{
+    display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:8px; border:1px solid var(--line);
+    background:var(--card); color:var(--text); font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap;
+  }
+  .btn:hover{ border-color:var(--brass); }
+  .btn.primary{ background:var(--brass); border-color:var(--brass); color:#26190A; }
+  .btn.primary:hover{ background:var(--brass-dark); border-color:var(--brass-dark); }
+  .btn.ghost{ background:transparent; border-color:transparent; }
+  .btn.ghost:hover{ background:var(--line); }
+  .btn.danger{ background:var(--danger); border-color:var(--danger); color:#fff; }
+  .btn.danger:hover{ background:#8A342F; }
+  .btn.small{ padding:6px 10px; font-size:12px; }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; }
+
+  .content{ padding:26px 28px 60px; max-width:980px; width:100%; margin:0 auto; }
+
+  .banner{
+    display:flex; align-items:flex-start; gap:10px; padding:12px 14px; border-radius:var(--radius-m);
+    background:var(--brass-tint); border:1px solid #E4CE9F; font-size:13px; margin-bottom:20px; color:#4A3B1B;
+  }
+  .banner.danger{ background:var(--danger-soft); border-color:#E3B6B0; color:#6E2823; }
+  .banner .btn{ margin-left:auto; flex-shrink:0; }
+
+  .page-head{ margin-bottom:18px; }
+  .page-head h2{ font-size:23px; margin:0 0 4px; }
+  .page-head p{ margin:0; color:var(--muted); font-size:13.5px; }
+  .page-head-row{ display:flex; align-items:flex-start; gap:14px; }
+  .page-head-row .btn{ flex-shrink:0; margin-left:auto; margin-top:2px; }
+
+  /* ---------- Dashboard ---------- */
+  .dash-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px; margin-top:6px; }
+  .dash-card{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius-m); padding:15px;
+    cursor:pointer; transition:border-color .15s;
+  }
+  .dash-card:hover{ border-color:var(--brass); }
+  .dash-card .dc-top{ display:flex; justify-content:space-between; align-items:flex-start; }
+  .dash-card .ic{ font-size:19px; }
+  .dash-card .num{ font-family:'Source Serif 4',serif; font-size:26px; color:var(--ink); }
+  .dash-card .lbl{ font-size:12.5px; color:var(--muted); margin-top:2px; }
+
+  .empty-hero{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius-l); padding:34px 30px; margin-top:8px;
+  }
+  .empty-hero h3{ font-size:19px; margin:0 0 8px; }
+  .empty-hero p{ color:var(--muted); font-size:14px; line-height:1.6; max-width:60ch; margin:0 0 16px; }
+  .empty-hero ol{ padding-left:18px; font-size:13.5px; color:var(--text); line-height:1.9; margin:0 0 18px; }
+
+  /* ---------- Entry cards ---------- */
+  .entry-list{ display:flex; flex-direction:column; gap:10px; }
+  .entry-card{
+    background:var(--card); border:1px solid var(--line); border-left:3px solid var(--brass);
+    border-radius:var(--radius-m); padding:15px 16px;
+  }
+  .entry-card.sensitive{ border-left-color:var(--danger); }
+  .entry-top{ display:flex; align-items:flex-start; gap:10px; }
+  .entry-title{ font-size:15px; font-weight:700; }
+  .entry-sub{ font-size:12px; color:var(--muted); margin-top:1px; }
+  .entry-actions{ margin-left:auto; display:flex; gap:6px; flex-shrink:0; }
+  .field-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:10px 18px; margin-top:12px; }
+  .field{ min-width:0; }
+  .field .flabel{ font-size:11px; color:var(--muted); margin-bottom:2px; }
+  .field .fval{ font-size:13.5px; word-break:break-word; display:flex; align-items:center; gap:6px; }
+  .field .fval.empty{ color:#B7BEB6; font-style:italic; }
+  .mask-btn{ border:none; background:none; cursor:pointer; color:var(--muted); font-size:12px; padding:2px; }
+  .mask-btn:hover{ color:var(--ink); }
+  .notes-block{ margin-top:12px; padding-top:12px; border-top:1px dashed var(--line); font-size:13px; color:var(--text); white-space:pre-wrap; }
+
+  .empty-cat{ text-align:center; padding:50px 20px; color:var(--muted); }
+  .empty-cat .ic{ font-size:26px; margin-bottom:8px; }
+
+  /* ---------- Slide-over form ---------- */
+  .overlay{ position:fixed; inset:0; background:rgba(22,48,43,.35); z-index:40; }
+  .drawer{
+    position:fixed; top:0; right:0; height:100vh; width:min(480px,100vw); background:var(--card);
+    z-index:41; box-shadow:-8px 0 30px rgba(0,0,0,.15); display:flex; flex-direction:column;
+  }
+  .drawer-head{ padding:20px 22px 14px; border-bottom:1px solid var(--line); display:flex; align-items:flex-start; gap:10px; }
+  .drawer-head h3{ margin:0; font-size:18px; }
+  .drawer-head p{ margin:3px 0 0; font-size:12.5px; color:var(--muted); }
+  .drawer-body{ padding:18px 22px; overflow-y:auto; flex:1; }
+  .drawer-foot{ padding:14px 22px; border-top:1px solid var(--line); display:flex; gap:8px; }
+  .form-row{ margin-bottom:14px; }
+  .form-row label{ display:block; font-size:12.5px; font-weight:600; margin-bottom:5px; color:var(--text); }
+  .form-row .hint{ font-weight:400; color:var(--muted); font-size:11px; margin-left:5px; }
+  .form-row input[type=text], .form-row input[type=date], .form-row input[type=password], .form-row textarea{
+    width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:var(--radius-s); font-size:13.5px;
+    font-family:inherit; color:var(--text); background:#FBFBF9;
+  }
+  .form-row textarea{ resize:vertical; min-height:60px; }
+  .pw-row{ position:relative; }
+  .pw-row input{ padding-right:36px; }
+  .pw-row .toggle{ position:absolute; right:8px; top:50%; transform:translateY(-50%); border:none; background:none; cursor:pointer; color:var(--muted); }
+  .section-label{ font-size:11px; letter-spacing:.03em; color:var(--muted); margin:20px 0 10px; text-transform:uppercase; }
+  .custom-field-row{ display:flex; gap:8px; margin-bottom:8px; }
+  .custom-field-row input{ flex:1; padding:8px 9px; border:1px solid var(--line); border-radius:var(--radius-s); font-size:13px; }
+  .custom-field-row button{ border:none; background:none; color:var(--danger); cursor:pointer; font-size:15px; padding:0 4px; }
+  .add-field-btn{ font-size:12.5px; color:var(--focus); background:none; border:none; cursor:pointer; padding:0; font-weight:600; }
+
+  /* ---------- Modals ---------- */
+  .modal-wrap{ position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .modal-bg{ position:absolute; inset:0; background:rgba(22,48,43,.55); }
+  .modal{ position:relative; background:var(--card); border-radius:var(--radius-l); width:100%; max-width:420px; padding:26px; }
+  .modal h3{ margin:0 0 8px; font-size:19px; }
+  .modal p{ font-size:13.5px; color:var(--muted); line-height:1.6; margin:0 0 16px; }
+  .modal .btn-row{ display:flex; gap:8px; justify-content:flex-end; margin-top:18px; }
+  .modal input[type=password], .modal input[type=text]{
+    width:100%; padding:10px 11px; border:1px solid var(--line); border-radius:var(--radius-s); font-size:14px; margin-bottom:8px;
+  }
+  .modal .error{ color:var(--danger); font-size:12.5px; margin:-2px 0 10px; }
+  .modal .lock-icon{ width:42px; height:42px; border-radius:50%; background:var(--brass-tint); display:flex; align-items:center; justify-content:center; margin-bottom:14px; font-size:18px; }
+
+  /* ---------- Toast ---------- */
+  .toast{
+    position:fixed; bottom:22px; left:50%; transform:translateX(-50%); background:var(--ink); color:#EAF1EC;
+    padding:10px 18px; border-radius:999px; font-size:13px; z-index:80; box-shadow:0 6px 18px rgba(0,0,0,.2);
+  }
+
+  /* ---------- Mobile ---------- */
+  .menu-btn{ display:none; }
+  @media(max-width:860px){
+    .sidebar{ position:fixed; left:-260px; z-index:50; transition:left .2s; box-shadow:10px 0 30px rgba(0,0,0,.2); }
+    .sidebar.open{ left:0; }
+    .menu-btn{ display:inline-flex; }
+    .content{ padding:20px 16px 60px; }
+    .topbar{ padding:12px 16px; }
+    .drawer{ width:100%; }
+  }
+
+  @media print{
+    .sidebar,.topbar,.entry-actions,.overlay,.drawer,.toast,.banner .btn{ display:none !important; }
+    body{ background:#fff; }
+    .content{ max-width:none; }
+    .entry-card{ break-inside:avoid; border-color:#999; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const { createApp, reactive, ref, computed, onMounted, watch, nextTick } = Vue;
+
+/* ============================== Category schema ============================== */
+const CATEGORY_GROUPS = [
+  { id:'property', label:'Property' },
+  { id:'financial', label:'Financial' },
+  { id:'valuables', label:'Valuables' },
+  { id:'identity', label:'Identity Documents' },
+  { id:'utilities', label:'Utilities & Connections' },
+  { id:'devices', label:'Devices & Warranty' },
+  { id:'health', label:'Health' },
+  { id:'legal', label:'Legal & Estate' },
+  { id:'people', label:'Contacts' },
+  { id:'sensitive', label:'Digital Credentials' },
+];
+
+const DEFAULT_CATEGORIES = [
+  { id:'house', label:'House Details', group:'property', icon:'\u{1F3E0}', fields:[
+    {key:'address', label:'House Address', type:'textarea'},
+    {key:'ownership', label:'Ownership (Own / Rented)', type:'text'},
+    {key:'area', label:'Built-up Area', type:'text'},
+    {key:'yearBuilt', label:'Year Built', type:'text'},
+  ]},
+  { id:'house-registration', label:'House Registration', group:'property', icon:'\u{1F4DC}', fields:[
+    {key:'docNo', label:'Registration Document No.', type:'text', sensitive:true},
+    {key:'regDate', label:'Registration Date', type:'date'},
+    {key:'office', label:'Sub-Registrar Office', type:'text'},
+    {key:'surveyNo', label:'Survey / Patta No.', type:'text'},
+    {key:'docLocation', label:'Document Kept At', type:'text'},
+  ]},
+  { id:'plots', label:'Plots', group:'property', icon:'\u{1F4CD}', fields:[
+    {key:'location', label:'Plot Location', type:'textarea'},
+    {key:'surveyNo', label:'Survey Number', type:'text'},
+    {key:'extent', label:'Extent (sq.ft / acres)', type:'text'},
+    {key:'docNo', label:'Registration Document No.', type:'text', sensitive:true},
+  ]},
+  { id:'property-key-info', label:'Property Key Info', group:'property', icon:'\u{1F5DD}', fields:[
+    {key:'propertyName', label:'Property Name / Identifier', type:'text'},
+    {key:'taxId', label:'Property Tax ID', type:'text'},
+    {key:'encumbrance', label:'Loan / Encumbrance Status', type:'text'},
+    {key:'keyLocation', label:'Physical Key Location', type:'text'},
+  ]},
+  { id:'purchase-records', label:'Purchase Records', group:'property', icon:'\u{1F9FE}', fields:[
+    {key:'item', label:'Item / Property', type:'text'},
+    {key:'purchaseDate', label:'Purchase Date', type:'date'},
+    {key:'amount', label:'Amount Paid', type:'text'},
+    {key:'seller', label:'Seller / Builder', type:'text'},
+    {key:'docLocation', label:'Receipts Location', type:'text'},
+  ]},
+  { id:'vehicle-registration', label:'Vehicle Registration', group:'property', icon:'\u{1F697}', fields:[
+    {key:'vehicleNo', label:'Vehicle Number', type:'text'},
+    {key:'makeModel', label:'Make & Model', type:'text'},
+    {key:'rcNumber', label:'RC Number', type:'text', sensitive:true},
+    {key:'owner', label:'Registered Owner', type:'text'},
+    {key:'insurer', label:'Insurance Provider', type:'text'},
+    {key:'insuranceExpiry', label:'Insurance Expiry', type:'date'},
+  ]},
+  { id:'bank-accounts', label:'Bank Accounts', group:'financial', icon:'\u{1F3E6}', fields:[
+    {key:'bankName', label:'Bank Name', type:'text'},
+    {key:'branch', label:'Branch', type:'text'},
+    {key:'accountNo', label:'Account Number', type:'text', sensitive:true},
+    {key:'ifsc', label:'IFSC Code', type:'text'},
+    {key:'accountType', label:'Account Type', type:'text'},
+  ]},
+  { id:'bank-loans', label:'Bank Loans', group:'financial', icon:'\u{1F4B3}', fields:[
+    {key:'lender', label:'Bank / Lender', type:'text'},
+    {key:'loanType', label:'Loan Type', type:'text'},
+    {key:'loanAccountNo', label:'Loan Account No.', type:'text', sensitive:true},
+    {key:'outstanding', label:'Outstanding Amount', type:'text'},
+    {key:'emi', label:'EMI Amount & Due Date', type:'text'},
+    {key:'closureDate', label:'Expected Closure Date', type:'date'},
+  ]},
+  { id:'fixed-deposits', label:'Fixed Deposits & RDs', group:'financial', icon:'\u{1F4B0}', fields:[
+    {key:'institution', label:'Bank / Institution', type:'text'},
+    {key:'fdNumber', label:'FD / RD Number', type:'text', sensitive:true},
+    {key:'principal', label:'Principal Amount', type:'text'},
+    {key:'maturityDate', label:'Maturity Date', type:'date'},
+    {key:'maturityAmount', label:'Maturity Amount', type:'text'},
+  ]},
+  { id:'insurance', label:'Insurance Policies', group:'financial', icon:'\u{1F6E1}', fields:[
+    {key:'insurer', label:'Insurance Company', type:'text'},
+    {key:'policyNo', label:'Policy Number', type:'text', sensitive:true},
+    {key:'policyType', label:'Policy Type (Life / Health / Vehicle)', type:'text'},
+    {key:'premium', label:'Premium Amount & Frequency', type:'text'},
+    {key:'renewalDate', label:'Renewal Date', type:'date'},
+    {key:'maturityDate', label:'Maturity Date', type:'date'},
+    {key:'nominee', label:'Nominee', type:'text'},
+  ]},
+  { id:'investments', label:'Investments (Stocks / MF / Demat)', group:'financial', icon:'\u{1F4C8}', fields:[
+    {key:'platform', label:'Broker / Platform', type:'text'},
+    {key:'accountId', label:'Demat / Folio Number', type:'text', sensitive:true},
+    {key:'investmentType', label:'Type (Stocks / MF / PPF / NPS)', type:'text'},
+    {key:'estimatedValue', label:'Approx. Value', type:'text'},
+    {key:'nominee', label:'Nominee', type:'text'},
+  ]},
+  { id:'employment', label:'Employment & Retirement', group:'financial', icon:'\u{1F4BC}', fields:[
+    {key:'employer', label:'Employer Name', type:'text'},
+    {key:'employeeId', label:'Employee ID', type:'text'},
+    {key:'pfNumber', label:'PF / UAN Number', type:'text', sensitive:true},
+    {key:'pensionDetails', label:'Pension / Gratuity Details', type:'textarea'},
+    {key:'hrContact', label:'HR Contact (for claims)', type:'text'},
+  ]},
+  { id:'credit-cards', label:'Credit Cards', group:'financial', icon:'\u{1F4B3}', fields:[
+    {key:'bankName', label:'Bank / Issuer', type:'text'},
+    {key:'cardNumber', label:'Card Number', type:'text', sensitive:true},
+    {key:'cardType', label:'Card Type', type:'text'},
+    {key:'expiry', label:'Expiry', type:'text'},
+    {key:'customerCare', label:'Customer Care Number', type:'text'},
+  ]},
+  { id:'jewels', label:'Jewellery & Valuables', group:'valuables', icon:'\u{1F48D}', fields:[
+    {key:'itemName', label:'Item', type:'text'},
+    {key:'description', label:'Description', type:'textarea'},
+    {key:'weight', label:'Weight', type:'text'},
+    {key:'value', label:'Estimated Value', type:'text'},
+    {key:'storageLocation', label:'Storage Location', type:'text'},
+    {key:'lockerDetails', label:'Bank Locker Details', type:'text', sensitive:true},
+  ]},
+  { id:'locker', label:'Bank Locker', group:'valuables', icon:'\u{1F5C4}', fields:[
+    {key:'bankName', label:'Bank Name', type:'text'},
+    {key:'branch', label:'Branch', type:'text'},
+    {key:'lockerNo', label:'Locker Number', type:'text', sensitive:true},
+    {key:'keyHolder', label:'Key Held By', type:'text'},
+    {key:'nominee', label:'Nominee', type:'text'},
+  ]},
+  { id:'aadhaar', label:'Aadhaar Card', group:'identity', icon:'\u{1FAAA}', fields:[
+    {key:'memberName', label:'Family Member Name', type:'text'},
+    {key:'aadhaarNo', label:'Aadhaar Number', type:'text', sensitive:true},
+    {key:'linkedMobile', label:'Linked Mobile Number', type:'text'},
+  ]},
+  { id:'voter-id', label:'Voter ID', group:'identity', icon:'\u{1F5F3}', fields:[
+    {key:'memberName', label:'Family Member Name', type:'text'},
+    {key:'voterId', label:'Voter ID Number', type:'text', sensitive:true},
+    {key:'constituency', label:'Constituency', type:'text'},
+  ]},
+  { id:'driving-license', label:'Driving License', group:'identity', icon:'\u{1F6FB}', fields:[
+    {key:'memberName', label:'Family Member Name', type:'text'},
+    {key:'licenseNo', label:'License Number', type:'text', sensitive:true},
+    {key:'validTill', label:'Valid Till', type:'date'},
+    {key:'vehicleClass', label:'Vehicle Class', type:'text'},
+  ]},
+  { id:'ration-card', label:'Ration Card', group:'identity', icon:'\u{1F33E}', fields:[
+    {key:'cardNo', label:'Ration Card Number', type:'text', sensitive:true},
+    {key:'cardType', label:'Card Type', type:'text'},
+    {key:'members', label:'Members Covered', type:'textarea'},
+  ]},
+  { id:'pan-card', label:'PAN Card', group:'identity', icon:'\u{1F4B3}', fields:[
+    {key:'memberName', label:'Family Member Name', type:'text'},
+    {key:'panNumber', label:'PAN Number', type:'text', sensitive:true},
+  ]},
+  { id:'passport', label:'Passport', group:'identity', icon:'\u{1F6C2}', fields:[
+    {key:'memberName', label:'Family Member Name', type:'text'},
+    {key:'passportNumber', label:'Passport Number', type:'text', sensitive:true},
+    {key:'placeOfIssue', label:'Place of Issue', type:'text'},
+    {key:'issueDate', label:'Issue Date', type:'date'},
+    {key:'expiryDate', label:'Expiry Date', type:'date'},
+  ]},
+  { id:'electricity', label:'Electricity Connection', group:'utilities', icon:'\u{26A1}', fields:[
+    {key:'consumerNo', label:'Consumer Number', type:'text', sensitive:true},
+    {key:'provider', label:'Provider / Board', type:'text'},
+    {key:'address', label:'Connection Address', type:'text'},
+    {key:'billingCycle', label:'Billing Due Date', type:'text'},
+  ]},
+  { id:'gas', label:'Gas Connection', group:'utilities', icon:'\u{1F525}', fields:[
+    {key:'consumerNo', label:'Consumer Number', type:'text', sensitive:true},
+    {key:'agency', label:'Distributor / Agency', type:'text'},
+    {key:'connectionType', label:'Connection Type', type:'text'},
+  ]},
+  { id:'broadband', label:'Broadband / Internet', group:'utilities', icon:'\u{1F4F6}', fields:[
+    {key:'provider', label:'Service Provider', type:'text'},
+    {key:'accountNo', label:'Account / Customer ID', type:'text', sensitive:true},
+    {key:'plan', label:'Plan Name', type:'text'},
+    {key:'billingDate', label:'Billing Date', type:'text'},
+  ]},
+  { id:'telephone', label:'Telephone Connection', group:'utilities', icon:'\u{260E}', fields:[
+    {key:'provider', label:'Service Provider', type:'text'},
+    {key:'number', label:'Phone Number', type:'text'},
+    {key:'accountNo', label:'Account Number', type:'text', sensitive:true},
+  ]},
+  { id:'devices-warranty', label:'Devices & Warranty', group:'devices', icon:'\u{1F4F1}', fields:[
+    {key:'deviceName', label:'Device (e.g. Phone, Washing Machine, Laptop)', type:'text'},
+    {key:'brandModel', label:'Brand & Model', type:'text'},
+    {key:'serialNumber', label:'Serial / IMEI Number', type:'text', sensitive:true},
+    {key:'purchaseDate', label:'Purchase Date', type:'date'},
+    {key:'purchasedFrom', label:'Purchased From', type:'text'},
+    {key:'warrantyExpiry', label:'Warranty Expiry', type:'date'},
+    {key:'extendedWarranty', label:'Extended Warranty / AMC Details', type:'text'},
+    {key:'invoiceLocation', label:'Invoice / Bill Location', type:'text'},
+  ]},
+  { id:'contacts', label:'Emergency Contacts', group:'people', icon:'\u{1F465}', fields:[
+    {key:'name', label:'Name', type:'text'},
+    {key:'relation', label:'Relation (Friend / Colleague / etc.)', type:'text'},
+    {key:'phone', label:'Phone Number', type:'text'},
+    {key:'email', label:'Email', type:'text'},
+    {key:'address', label:'Address', type:'textarea'},
+    {key:'whenToContact', label:'When to Contact', type:'text'},
+  ]},
+  { id:'professional-contacts', label:'Professional Contacts', group:'people', icon:'\u{1F4BC}', fields:[
+    {key:'name', label:'Name', type:'text'},
+    {key:'role', label:'Role (CA / Lawyer / Advisor)', type:'text'},
+    {key:'firm', label:'Firm / Organization', type:'text'},
+    {key:'phone', label:'Phone Number', type:'text'},
+    {key:'email', label:'Email', type:'text'},
+  ]},
+  { id:'health-info', label:'Health Information', group:'health', icon:'\u{2695}', fields:[
+    {key:'memberName', label:'Family Member Name', type:'text'},
+    {key:'bloodGroup', label:'Blood Group', type:'text'},
+    {key:'allergies', label:'Allergies', type:'textarea'},
+    {key:'conditions', label:'Ongoing Conditions / Medication', type:'textarea'},
+    {key:'doctorName', label:'Primary Doctor', type:'text'},
+    {key:'doctorContact', label:'Doctor Contact', type:'text'},
+    {key:'healthInsurer', label:'Health Insurer', type:'text'},
+    {key:'policyNo', label:'Health Policy Number', type:'text', sensitive:true},
+  ]},
+  { id:'will-estate', label:'Will & Estate Info', group:'legal', icon:'\u{1F4DC}', fields:[
+    {key:'willLocation', label:'Where the Will is Kept', type:'text'},
+    {key:'executorName', label:'Executor Name', type:'text'},
+    {key:'executorContact', label:'Executor Contact', type:'text'},
+    {key:'lawyerName', label:'Lawyer Name', type:'text'},
+    {key:'lawyerContact', label:'Lawyer Contact', type:'text'},
+  ]},
+  { id:'credentials', label:'Digital Credentials', group:'sensitive', icon:'\u{1F511}', fields:[
+    {key:'serviceName', label:'Service / Account Name', type:'text'},
+    {key:'usernameOrEmail', label:'Username / Email', type:'text'},
+    {key:'password', label:'Password', type:'password', sensitive:true},
+    {key:'pin', label:'PIN (if applicable)', type:'password', sensitive:true},
+    {key:'recoveryInfo', label:'Recovery Info', type:'textarea'},
+  ]},
+  { id:'digital-assets', label:'Digital Assets', group:'sensitive', icon:'\u{1F4BE}', fields:[
+    {key:'assetType', label:'Type (Email / Social / Cloud / Domain / Crypto)', type:'text'},
+    {key:'platform', label:'Platform / Service', type:'text'},
+    {key:'accountIdentifier', label:'Account ID / Username', type:'text'},
+    {key:'recoveryInfo', label:'Recovery Info', type:'textarea'},
+    {key:'instructions', label:'What to Do With This', type:'textarea'},
+  ]},
+];
+
+/* ============================== Crypto helpers ============================== */
+const STORAGE_KEY = 'familyEmergencyVault.v1';
+let sessionKey = null; // CryptoKey, in-memory only, never persisted
+
+function randomBytes(n){ return crypto.getRandomValues(new Uint8Array(n)); }
+function toB64(bytes){ let s=''; bytes.forEach(b=>s+=String.fromCharCode(b)); return btoa(s); }
+function fromB64(b64){ return Uint8Array.from(atob(b64), c=>c.charCodeAt(0)); }
+
+async function deriveKey(password, saltB64){
+  const salt = fromB64(saltB64);
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), {name:'PBKDF2'}, false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name:'PBKDF2', salt, iterations:150000, hash:'SHA-256' },
+    keyMaterial,
+    { name:'AES-GCM', length:256 },
+    false,
+    ['encrypt','decrypt']
+  );
+}
+async function encryptString(key, plaintext){
+  const iv = randomBytes(12);
+  const enc = new TextEncoder();
+  const buf = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, enc.encode(plaintext));
+  return { iv: toB64(iv), data: toB64(new Uint8Array(buf)) };
+}
+async function decryptString(key, ivB64, dataB64){
+  const iv = fromB64(ivB64);
+  const bytes = fromB64(dataB64);
+  const buf = await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, bytes);
+  return new TextDecoder().decode(buf);
+}
+
+/* ============================== App ============================== */
+const App = {
+  setup(){
+    const state = reactive({
+      customCategories: [],
+      entries: {},        // { catId: [ {id, values:{}, custom:[{label,value}], notes, updatedAt} ] }
+      instructions: {
+        fileLocation: '', passwordLocation: '', firstContact: '', startingPoint: '', notes: ''
+      },
+      loaded: false,
+      isEncrypted: false,
+      needsUnlock: false,
+      unlockError: '',
+      unlockPw: ref(''),
+      salt: null,
+      toast: '',
+      search: '',
+      showRenewals: false,
+      view: { type:'dashboard', catId:null },
+      sidebarOpen: false,
+      showSetPw: false,
+      showChangePw: false,
+      showRemovePwConfirm: false,
+      showResetConfirm: false,
+      resetConfirmText: '',
+      newPw: '', newPw2: '', pwError: '',
+      curPwForRemove: '', removePwError: '',
+      showExportWarn: false,
+      importFileMeta: null,
+      importPending: null, // parsed wrapper object awaiting decryption/merge decision
+      importPw: '', importPwError: '',
+      showImportModeModal: false,
+      drawer: { open:false, catId:null, editId:null, values:{}, custom:[], notes:'' },
+      revealed: {}, // fieldKey -> bool, per open entry
+    });
+
+    const allCategories = computed(() => DEFAULT_CATEGORIES.concat(state.customCategories));
+
+    function catsByGroup(groupId){
+      return allCategories.value.filter(c => c.group === groupId);
+    }
+    function findCat(id){ return allCategories.value.find(c => c.id === id); }
+    function entriesOf(catId){ return state.entries[catId] || []; }
+    function countOf(catId){ return entriesOf(catId).length; }
+
+    let toastTimer = null;
+    function showToast(msg){
+      state.toast = msg;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(()=> state.toast = '', 2600);
+    }
+
+    /* ---------- persistence ---------- */
+    function serializePayload(){
+      return JSON.stringify({ entries: state.entries, customCategories: state.customCategories, instructions: state.instructions });
+    }
+    function applyPayload(json){
+      try{
+        const parsed = JSON.parse(json);
+        state.entries = parsed.entries || {};
+        state.customCategories = parsed.customCategories || [];
+        state.instructions = parsed.instructions || { fileLocation:'', passwordLocation:'', firstContact:'', startingPoint:'', notes:'' };
+        return true;
+      }catch(e){ return false; }
+    }
+
+    let saveTimer = null;
+    function scheduleSave(){
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(persist, 200);
+    }
+    async function persist(){
+      const plaintext = serializePayload();
+      let record;
+      if (sessionKey){
+        const {iv, data} = await encryptString(sessionKey, plaintext);
+        record = { encrypted:true, salt: state.salt, iv, data };
+      } else {
+        record = { encrypted:false, data: plaintext };
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(record));
+    }
+
+    async function loadFromStorage(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw){
+        state.loaded = true;
+        return;
+      }
+      let record;
+      try{ record = JSON.parse(raw); } catch(e){ state.loaded = true; return; }
+      if (record.encrypted){
+        state.isEncrypted = true;
+        state.salt = record.salt;
+        state.needsUnlock = true;
+        state.pendingRecord = record;
+      } else {
+        applyPayload(record.data);
+        state.loaded = true;
+      }
+    }
+
+    async function attemptUnlock(){
+      state.unlockError = '';
+      try{
+        const key = await deriveKey(state.unlockPw, state.pendingRecord.salt);
+        const plaintext = await decryptString(key, state.pendingRecord.iv, state.pendingRecord.data);
+        const ok = applyPayload(plaintext);
+        if (!ok) throw new Error('bad payload');
+        sessionKey = key;
+        state.salt = state.pendingRecord.salt;
+        state.needsUnlock = false;
+        state.loaded = true;
+        state.unlockPw = '';
+        showToast('Vault unlocked');
+      }catch(e){
+        state.unlockError = 'Incorrect password. Try again.';
+      }
+    }
+
+    function resetVault(){
+      localStorage.removeItem(STORAGE_KEY);
+      sessionKey = null;
+      state.isEncrypted = false;
+      state.needsUnlock = false;
+      state.entries = {};
+      state.customCategories = [];
+      state.salt = null;
+      state.showResetConfirm = false;
+      state.resetConfirmText = '';
+      state.loaded = true;
+      showToast('Vault reset. Starting fresh.');
+    }
+
+    /* ---------- password management ---------- */
+    async function setMasterPassword(){
+      state.pwError = '';
+      if (state.newPw.length < 6){ state.pwError = 'Use at least 6 characters.'; return; }
+      if (state.newPw !== state.newPw2){ state.pwError = "Passwords don't match."; return; }
+      const salt = toB64(randomBytes(16));
+      const key = await deriveKey(state.newPw, salt);
+      sessionKey = key;
+      state.salt = salt;
+      state.isEncrypted = true;
+      await persist();
+      state.showSetPw = false;
+      state.newPw = ''; state.newPw2 = '';
+      showToast('Master password set. Your data is now encrypted.');
+    }
+    async function changeMasterPassword(){
+      state.pwError = '';
+      if (state.newPw.length < 6){ state.pwError = 'Use at least 6 characters.'; return; }
+      if (state.newPw !== state.newPw2){ state.pwError = "Passwords don't match."; return; }
+      const salt = toB64(randomBytes(16));
+      const key = await deriveKey(state.newPw, salt);
+      sessionKey = key;
+      state.salt = salt;
+      await persist();
+      state.showChangePw = false;
+      state.newPw = ''; state.newPw2 = '';
+      showToast('Master password changed.');
+    }
+    async function removeMasterPassword(){
+      state.removePwError = '';
+      try{
+        // verify current password decrypts current stored blob
+        const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        await deriveKey(state.curPwForRemove, raw.salt).then(k => decryptString(k, raw.iv, raw.data));
+      }catch(e){
+        state.removePwError = 'Incorrect password.';
+        return;
+      }
+      sessionKey = null;
+      state.isEncrypted = false;
+      state.salt = null;
+      await persist();
+      state.showRemovePwConfirm = false;
+      state.curPwForRemove = '';
+      showToast('Master password removed. Data now stored unencrypted.');
+    }
+
+    /* ---------- navigation ---------- */
+    function goTo(type, catId){
+      state.view = { type, catId };
+      state.search = '';
+      state.sidebarOpen = false;
+    }
+
+    /* ---------- entry CRUD ---------- */
+    function openAddDrawer(catId){
+      const cat = findCat(catId);
+      const values = {};
+      cat.fields.forEach(f => values[f.key] = '');
+      state.drawer = { open:true, catId, editId:null, values, custom:[], notes:'' };
+    }
+    function openEditDrawer(catId, entry){
+      const cat = findCat(catId);
+      const values = {};
+      cat.fields.forEach(f => values[f.key] = entry.values[f.key] || '');
+      state.drawer = {
+        open:true, catId, editId:entry.id,
+        values, custom: JSON.parse(JSON.stringify(entry.custom||[])), notes: entry.notes || ''
+      };
+    }
+    function closeDrawer(){ state.drawer.open = false; }
+    function addCustomField(){ state.drawer.custom.push({label:'', value:''}); }
+    function removeCustomField(i){ state.drawer.custom.splice(i,1); }
+
+    function saveDrawer(){
+      const { catId, editId, values, custom, notes } = state.drawer;
+      if (!state.entries[catId]) state.entries[catId] = [];
+      const cleanCustom = custom.filter(c => c.label.trim() !== '' || c.value.trim() !== '');
+      if (editId){
+        const idx = state.entries[catId].findIndex(e => e.id === editId);
+        if (idx > -1){
+          state.entries[catId][idx] = { id: editId, values: {...values}, custom: cleanCustom, notes, updatedAt: Date.now() };
+        }
+      } else {
+        state.entries[catId].push({
+          id: 'e_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+          values: {...values}, custom: cleanCustom, notes, updatedAt: Date.now()
+        });
+      }
+      scheduleSave();
+      state.drawer.open = false;
+      showToast('Saved');
+    }
+    function deleteEntry(catId, id){
+      state.entries[catId] = (state.entries[catId]||[]).filter(e => e.id !== id);
+      scheduleSave();
+      showToast('Entry deleted');
+    }
+
+    function toggleReveal(entryId, key){
+      const k = entryId + '::' + key;
+      state.revealed[k] = !state.revealed[k];
+    }
+    function isRevealed(entryId, key){ return !!state.revealed[entryId + '::' + key]; }
+
+    async function copyValue(v){
+      try{
+        await navigator.clipboard.writeText(v);
+        showToast('Copied to clipboard');
+      }catch(e){
+        showToast('Could not copy — select and copy manually');
+      }
+    }
+
+    function entryTitle(cat, entry){
+      const first = cat.fields[0];
+      return entry.values[first.key] || cat.label;
+    }
+
+    /* ---------- search ---------- */
+    const searchResults = computed(() => {
+      if (!state.search.trim()) return [];
+      const q = state.search.trim().toLowerCase();
+      const out = [];
+      allCategories.value.forEach(cat => {
+        entriesOf(cat.id).forEach(entry => {
+          let hit = cat.label.toLowerCase().includes(q);
+          if (!hit) hit = Object.values(entry.values).some(v => (v||'').toLowerCase().includes(q));
+          if (!hit) hit = (entry.custom||[]).some(c => (c.label+c.value).toLowerCase().includes(q));
+          if (!hit) hit = (entry.notes||'').toLowerCase().includes(q);
+          if (hit) out.push({ cat, entry });
+        });
+      });
+      return out;
+    });
+
+    /* ---------- export / import ---------- */
+    function triggerExport(){
+      if (!state.isEncrypted){ state.showExportWarn = true; return; }
+      doExport();
+    }
+    async function doExport(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const record = raw ? JSON.parse(raw) : { encrypted:false, data: serializePayload() };
+      const blob = new Blob([JSON.stringify(record, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const stamp = new Date().toISOString().slice(0,10);
+      a.href = url;
+      a.download = `family-vault-backup-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      state.showExportWarn = false;
+      showToast('Backup file downloaded');
+    }
+
+    const fileInputRef = ref(null);
+    function pickImportFile(){ fileInputRef.value && fileInputRef.value.click(); }
+    function onImportFile(e){
+      const file = e.target.files[0];
+      if (!file) return;
+      state.importFileMeta = { name:file.name, size:file.size };
+      const reader = new FileReader();
+      reader.onload = () => {
+        try{
+          const wrapper = JSON.parse(reader.result);
+          state.importPending = wrapper;
+          if (wrapper.encrypted){
+            state.importPw = ''; state.importPwError = '';
+          } else {
+            state.showImportModeModal = true;
+          }
+        }catch(err){
+          showToast("This doesn't look like a valid backup file.");
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    }
+    async function decryptImportAndProceed(){
+      state.importPwError = '';
+      try{
+        const key = await deriveKey(state.importPw, state.importPending.salt);
+        const plaintext = await decryptString(key, state.importPending.iv, state.importPending.data);
+        state.importPendingPlaintext = plaintext;
+        state.showImportModeModal = true;
+      }catch(e){
+        state.importPwError = 'Incorrect password for this backup file.';
+      }
+    }
+    function finalizeImport(mode){
+      let payload;
+      try{
+        const json = state.importPendingPlaintext || state.importPending.data;
+        payload = JSON.parse(json);
+      }catch(e){
+        showToast('Import failed — file could not be read.');
+        state.showImportModeModal = false;
+        return;
+      }
+      if (mode === 'replace'){
+        state.entries = payload.entries || {};
+        state.customCategories = payload.customCategories || [];
+        state.instructions = payload.instructions || state.instructions;
+      } else {
+        const incomingCats = payload.customCategories || [];
+        incomingCats.forEach(c => { if (!state.customCategories.find(x=>x.id===c.id)) state.customCategories.push(c); });
+        const incomingEntries = payload.entries || {};
+        Object.keys(incomingEntries).forEach(catId => {
+          if (!state.entries[catId]) state.entries[catId] = [];
+          const existingIds = new Set(state.entries[catId].map(e=>e.id));
+          incomingEntries[catId].forEach(e => { if (!existingIds.has(e.id)) state.entries[catId].push(e); });
+        });
+      }
+      scheduleSave();
+      state.showImportModeModal = false;
+      state.importPending = null;
+      state.importPendingPlaintext = null;
+      showToast('Import complete');
+    }
+
+    /* ---------- upcoming insurance renewals ---------- */
+    const RENEWAL_WINDOW_DAYS = 60;
+    function daysUntil(dateStr){
+      if (!dateStr) return null;
+      const target = new Date(dateStr + 'T00:00:00');
+      if (isNaN(target.getTime())) return null;
+      const now = new Date();
+      now.setHours(0,0,0,0);
+      return Math.round((target - now) / 86400000);
+    }
+    function relativeLabel(days){
+      if (days < 0) return `Overdue ${Math.abs(days)}d`;
+      if (days === 0) return 'Due today';
+      return `In ${days}d`;
+    }
+    const upcomingRenewals = computed(() => {
+      const out = [];
+      (state.entries['insurance'] || []).forEach(entry => {
+        [['renewalDate','Renewal'], ['maturityDate','Maturity']].forEach(([key, kind]) => {
+          const val = entry.values[key];
+          const days = daysUntil(val);
+          if (days === null) return;
+          if (days <= RENEWAL_WINDOW_DAYS){
+            out.push({
+              entryId: entry.id,
+              title: entry.values.insurer || entry.values.policyType || 'Insurance Policy',
+              sub: (entry.values.policyType ? entry.values.policyType + ' — ' : '') + kind,
+              date: val,
+              days,
+            });
+          }
+        });
+      });
+      out.sort((a,b) => a.days - b.days);
+      return out;
+    });
+
+    onMounted(loadFromStorage);
+    watch(() => state.view, () => window.scrollTo(0,0));
+    watch(() => state.instructions, () => { if (state.loaded) scheduleSave(); }, { deep:true });
+
+    return {
+      state, allCategories, CATEGORY_GROUPS, catsByGroup, entriesOf, countOf, findCat,
+      goTo, openAddDrawer, openEditDrawer, closeDrawer, addCustomField, removeCustomField,
+      saveDrawer, deleteEntry, toggleReveal, isRevealed, copyValue, entryTitle,
+      searchResults, attemptUnlock, resetVault,
+      setMasterPassword, changeMasterPassword, removeMasterPassword,
+      triggerExport, doExport, fileInputRef, pickImportFile, onImportFile,
+      decryptImportAndProceed, finalizeImport,
+      upcomingRenewals, relativeLabel,
+    };
+  },
+  template: `
+  <div v-if="!state.loaded && !state.needsUnlock" style="display:flex;align-items:center;justify-content:center;min-height:100vh;color:var(--muted);font-size:14px;">
+    Opening vault…
+  </div>
+
+  <!-- UNLOCK SCREEN -->
+  <div v-else-if="state.needsUnlock" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--ink);padding:20px;">
+    <div style="background:var(--card);border-radius:14px;padding:30px;max-width:380px;width:100%;">
+      <div class="modal .lock-icon" style="width:42px;height:42px;border-radius:50%;background:var(--brass-tint);display:flex;align-items:center;justify-content:center;margin-bottom:14px;font-size:18px;">&#128274;</div>
+      <h3 class="serif" style="margin:0 0 6px;font-size:19px;">This vault is locked</h3>
+      <p style="color:var(--muted);font-size:13.5px;line-height:1.6;margin:0 0 14px;">Enter your master password to unlock it. This password isn't stored anywhere — if it's lost, the data can't be recovered.</p>
+      <input type="password" v-model="state.unlockPw" placeholder="Master password" @keyup.enter="attemptUnlock" autofocus />
+      <p v-if="state.unlockError" class="error" style="color:var(--danger);font-size:12.5px;margin:4px 0 8px;">{{ state.unlockError }}</p>
+      <div class="btn-row" style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn primary" style="flex:1;justify-content:center;" @click="attemptUnlock">Unlock</button>
+      </div>
+      <button class="btn ghost small" style="margin-top:14px;color:var(--danger);" @click="state.showResetConfirm=true">Forgot password? Reset vault</button>
+    </div>
+
+    <div class="modal-wrap" v-if="state.showResetConfirm">
+      <div class="modal-bg" @click="state.showResetConfirm=false"></div>
+      <div class="modal">
+        <h3>Reset the vault?</h3>
+        <p>Because your data is encrypted only on this device, there is no way to recover it without the password. Resetting permanently deletes everything currently stored. Type <strong>RESET</strong> to confirm.</p>
+        <input type="text" v-model="state.resetConfirmText" placeholder="Type RESET" />
+        <div class="btn-row">
+          <button class="btn ghost" @click="state.showResetConfirm=false">Cancel</button>
+          <button class="btn danger" :disabled="state.resetConfirmText!=='RESET'" @click="resetVault">Delete everything</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div class="shell" v-else>
+    <input type="file" ref="fileInputRef" accept="application/json" style="display:none" @change="onImportFile" />
+
+    <aside class="sidebar" :class="{open: state.sidebarOpen}">
+      <div class="brand">
+        <div class="mark">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 6v6c0 5 3.8 8.7 9 10 5.2-1.3 9-5 9-10V6l-9-4z" stroke="#F4F0E4" stroke-width="1.4"/><path d="M9 12l2 2 4-4" stroke="#B8863B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h1 class="serif">Family Emergency Vault</h1>
+        </div>
+        <p>A single record book for everything your family would need in an emergency.</p>
+      </div>
+
+      <div class="nav-groups">
+        <button class="nav-item" :class="{active: state.view.type==='dashboard'}" @click="goTo('dashboard')">
+          <span class="ic">&#8962;</span> Overview
+        </button>
+        <button class="nav-item" :class="{active: state.view.type==='instructions'}" @click="goTo('instructions')">
+          <span class="ic">&#9993;</span> For My Dependents
+        </button>
+
+        <div class="nav-group" v-for="g in CATEGORY_GROUPS" :key="g.id">
+          <div class="nav-group-label">{{ g.label }}</div>
+          <button v-for="c in catsByGroup(g.id)" :key="c.id"
+            class="nav-item" :class="{active: state.view.type==='category' && state.view.catId===c.id, 'sensitive-item': g.id==='sensitive'}"
+            @click="goTo('category', c.id)">
+            <span class="ic">{{ c.icon }}</span>
+            <span>{{ c.label }}</span>
+            <span class="cnt" v-if="countOf(c.id)">{{ countOf(c.id) }}</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="sidebar-foot">
+        <div class="lock-pill" @click="state.isEncrypted ? (state.showChangePw=true) : (state.showSetPw=true)">
+          <span class="lock-dot" :class="state.isEncrypted ? 'on' : 'off'"></span>
+          <span>{{ state.isEncrypted ? 'Encrypted with master password' : 'Not encrypted — tap to secure' }}</span>
+        </div>
+        Stored only in this browser. Nothing leaves this device.
+      </div>
+    </aside>
+    <div v-if="state.sidebarOpen" class="overlay" style="z-index:45;" @click="state.sidebarOpen=false"></div>
+
+    <div class="main">
+      <div class="topbar">
+        <button class="btn ghost menu-btn" @click="state.sidebarOpen=true">&#9776;</button>
+        <div class="search-wrap">
+          <span class="ic">&#128269;</span>
+          <input type="text" v-model="state.search" placeholder="Search everything…" />
+        </div>
+        <div class="top-actions">
+          <div class="bell-wrap">
+            <button class="btn ghost bell-btn" @click="state.showRenewals = !state.showRenewals" title="Upcoming insurance renewals">
+              &#128276;
+              <span class="badge" :class="{overdue: upcomingRenewals.some(r=>r.days<0)}" v-if="upcomingRenewals.length">{{ upcomingRenewals.length }}</span>
+            </button>
+            <div v-if="state.showRenewals" class="click-catcher" @click="state.showRenewals=false"></div>
+            <div v-if="state.showRenewals" class="renewals-dropdown">
+              <div class="rd-head">Insurance renewals &amp; maturities due within {{ 60 }} days</div>
+              <template v-if="upcomingRenewals.length">
+                <button v-for="r in upcomingRenewals" :key="r.entryId+r.sub" class="renewals-item" :class="{overdue: r.days<0}"
+                  @click="goTo('category','insurance'); state.showRenewals=false">
+                  <span class="ri-dot"></span>
+                  <span>
+                    <div class="ri-title">{{ r.title }}</div>
+                    <div class="ri-sub">{{ r.sub }} · {{ new Date(r.date+'T00:00:00').toLocaleDateString() }}</div>
+                  </span>
+                  <span class="ri-when">{{ relativeLabel(r.days) }}</span>
+                </button>
+              </template>
+              <div v-else class="renewals-empty">No renewals or maturities due in the next 60 days.</div>
+            </div>
+          </div>
+          <button class="btn" @click="pickImportFile">Import</button>
+          <button class="btn" @click="triggerExport">Export backup</button>
+          <button class="btn ghost" @click="window.print()" title="Print a readable summary">Print</button>
+        </div>
+      </div>
+
+      <div class="content">
+
+        <!-- SEARCH RESULTS -->
+        <template v-if="state.search.trim()">
+          <div class="page-head"><h2 class="serif">Search results</h2><p>{{ searchResults.length }} matching {{ searchResults.length===1 ? 'entry' : 'entries' }} for "{{ state.search }}"</p></div>
+          <div class="entry-list">
+            <div v-for="r in searchResults" :key="r.cat.id+r.entry.id" class="entry-card" :class="{sensitive: r.cat.group==='sensitive'}">
+              <div class="entry-top">
+                <div>
+                  <div class="entry-title">{{ entryTitle(r.cat, r.entry) }}</div>
+                  <div class="entry-sub">{{ r.cat.icon }} {{ r.cat.label }}</div>
+                </div>
+                <div class="entry-actions">
+                  <button class="btn small" @click="goTo('category', r.cat.id)">Open section</button>
+                </div>
+              </div>
+            </div>
+            <div v-if="!searchResults.length" class="empty-cat"><div class="ic">&#128269;</div>Nothing matches that search yet.</div>
+          </div>
+        </template>
+
+        <!-- DASHBOARD -->
+        <template v-else-if="state.view.type==='dashboard'">
+          <div class="banner" v-if="!state.isEncrypted">
+            <span>&#128274;</span>
+            <div>
+              <strong>Your vault isn't encrypted yet.</strong> Anyone with access to this browser can read everything stored here, including passwords and account numbers. Set a master password to encrypt it.
+            </div>
+            <button class="btn primary small" @click="state.showSetPw=true">Set password</button>
+          </div>
+
+          <div class="page-head">
+            <h2 class="serif">Overview</h2>
+            <p>Everything is organized into sections on the left. Add as many entries as you need in each one.</p>
+          </div>
+
+          <div v-if="allCategories.filter(c=>countOf(c.id)>0).length===0" class="empty-hero">
+            <h3 class="serif">Let's set up the vault</h3>
+            <p>This is where you'll keep property papers, bank and loan details, insurance and FD maturity dates, identity documents for every family member, utility accounts, emergency contacts, and login credentials — organized so a family member can find what they need under pressure.</p>
+            <ol>
+              <li>Pick a section from the left, like "Bank Accounts" or "Emergency Contacts".</li>
+              <li>Click "Add entry" and fill in what you know — nothing is required.</li>
+              <li>When you're ready, set a master password to encrypt everything, then export a backup.</li>
+            </ol>
+            <button class="btn primary" @click="goTo('category','contacts')">Start with emergency contacts</button>
+          </div>
+
+          <div class="dash-grid" v-else>
+            <div class="dash-card" v-for="c in allCategories.filter(c=>countOf(c.id)>0)" :key="c.id" @click="goTo('category', c.id)">
+              <div class="dc-top"><span class="ic">{{ c.icon }}</span></div>
+              <div class="num">{{ countOf(c.id) }}</div>
+              <div class="lbl">{{ c.label }}</div>
+            </div>
+          </div>
+        </template>
+
+        <!-- FOR MY DEPENDENTS -->
+        <template v-else-if="state.view.type==='instructions'">
+          <div class="page-head">
+            <h2 class="serif">&#9993; For My Dependents</h2>
+            <p>A plain-language note for whoever needs to use this vault. This page is included when you print.</p>
+          </div>
+          <div class="banner">
+            <span>&#128274;</span>
+            <div><strong>Don't write the actual password here.</strong> Describe where to find it instead (a locker, an envelope, a person) — this page is stored the same way as everything else in the vault.</div>
+          </div>
+          <div class="entry-card" style="border-left-color:var(--focus);">
+            <div class="form-row">
+              <label>Where the backup file is kept</label>
+              <textarea v-model="state.instructions.fileLocation" placeholder="e.g. USB drive in the study safe, and a copy in the shared family folder"></textarea>
+            </div>
+            <div class="form-row">
+              <label>Where the master password can be found</label>
+              <textarea v-model="state.instructions.passwordLocation" placeholder="e.g. Sealed envelope in the bank locker, or ask [name]"></textarea>
+            </div>
+            <div class="form-row">
+              <label>Who to contact first</label>
+              <textarea v-model="state.instructions.firstContact" placeholder="e.g. Call [name] at [phone] — they know the full plan"></textarea>
+            </div>
+            <div class="form-row">
+              <label>Where to start looking</label>
+              <textarea v-model="state.instructions.startingPoint" placeholder="e.g. Start with Emergency Contacts, then Bank Accounts and Insurance"></textarea>
+            </div>
+            <div class="form-row" style="margin-bottom:0;">
+              <label>Anything else they should know</label>
+              <textarea v-model="state.instructions.notes" placeholder="Any other guidance for whoever opens this"></textarea>
+            </div>
+          </div>
+        </template>
+
+        <!-- CATEGORY VIEW -->
+        <template v-else-if="state.view.type==='category'">
+          <div class="page-head page-head-row">
+            <div>
+              <h2 class="serif">{{ findCat(state.view.catId).icon }} {{ findCat(state.view.catId).label }}</h2>
+              <p>{{ countOf(state.view.catId) }} {{ countOf(state.view.catId)===1 ? 'entry' : 'entries' }}</p>
+            </div>
+            <button class="btn primary" @click="openAddDrawer(state.view.catId)">+ Add entry</button>
+          </div>
+
+          <div v-if="!countOf(state.view.catId)" class="empty-cat">
+            <div class="ic">{{ findCat(state.view.catId).icon }}</div>
+            No entries yet in {{ findCat(state.view.catId).label }}. Add the first one whenever you have a few details on hand.
+          </div>
+
+          <div class="entry-list" v-else>
+            <div v-for="entry in entriesOf(state.view.catId)" :key="entry.id" class="entry-card" :class="{sensitive: findCat(state.view.catId).group==='sensitive'}">
+              <div class="entry-top">
+                <div>
+                  <div class="entry-title">{{ entryTitle(findCat(state.view.catId), entry) }}</div>
+                  <div class="entry-sub">Updated {{ new Date(entry.updatedAt).toLocaleDateString() }}</div>
+                </div>
+                <div class="entry-actions">
+                  <button class="btn small" @click="openEditDrawer(state.view.catId, entry)">Edit</button>
+                  <button class="btn small" @click="deleteEntry(state.view.catId, entry.id)">Delete</button>
+                </div>
+              </div>
+              <div class="field-grid">
+                <div class="field" v-for="f in findCat(state.view.catId).fields" :key="f.key">
+                  <div class="flabel">{{ f.label }}</div>
+                  <div class="fval" :class="{empty: !entry.values[f.key]}" v-if="!f.sensitive">
+                    {{ entry.values[f.key] || '—' }}
+                  </div>
+                  <div class="fval" v-else>
+                    <span v-if="entry.values[f.key]">
+                      <span v-if="isRevealed(entry.id, f.key)">{{ entry.values[f.key] }}</span>
+                      <span v-else>••••••••</span>
+                    </span>
+                    <span v-else class="empty">—</span>
+                    <button v-if="entry.values[f.key]" class="mask-btn" @click="toggleReveal(entry.id, f.key)" :title="isRevealed(entry.id,f.key)?'Hide':'Show'">{{ isRevealed(entry.id,f.key) ? '🙈' : '👁' }}</button>
+                    <button v-if="entry.values[f.key]" class="mask-btn" @click="copyValue(entry.values[f.key])" title="Copy">⧉</button>
+                  </div>
+                </div>
+                <div class="field" v-for="(c,i) in entry.custom" :key="'c'+i">
+                  <div class="flabel">{{ c.label }}</div>
+                  <div class="fval">{{ c.value || '—' }}</div>
+                </div>
+              </div>
+              <div class="notes-block" v-if="entry.notes">{{ entry.notes }}</div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- ENTRY DRAWER -->
+    <template v-if="state.drawer.open">
+      <div class="overlay" @click="closeDrawer"></div>
+      <div class="drawer">
+        <div class="drawer-head">
+          <div>
+            <h3 class="serif">{{ state.drawer.editId ? 'Edit entry' : 'Add entry' }}</h3>
+            <p>{{ findCat(state.drawer.catId).label }}</p>
+          </div>
+          <button class="btn ghost small" style="margin-left:auto;" @click="closeDrawer">Close</button>
+        </div>
+        <div class="drawer-body">
+          <div class="form-row" v-for="f in findCat(state.drawer.catId).fields" :key="f.key">
+            <label>{{ f.label }} <span class="hint" v-if="f.sensitive">(sensitive)</span></label>
+            <textarea v-if="f.type==='textarea'" v-model="state.drawer.values[f.key]"></textarea>
+            <input v-else-if="f.type==='date'" type="date" v-model="state.drawer.values[f.key]" />
+            <div v-else-if="f.type==='password'" class="pw-row">
+              <input :type="isRevealed('draft', f.key) ? 'text' : 'password'" v-model="state.drawer.values[f.key]" />
+              <button type="button" class="toggle" @click="toggleReveal('draft', f.key)">{{ isRevealed('draft',f.key) ? '🙈' : '👁' }}</button>
+            </div>
+            <input v-else type="text" v-model="state.drawer.values[f.key]" />
+          </div>
+
+          <div class="section-label">Additional details</div>
+          <div class="custom-field-row" v-for="(c,i) in state.drawer.custom" :key="i">
+            <input type="text" v-model="c.label" placeholder="Label" />
+            <input type="text" v-model="c.value" placeholder="Value" />
+            <button @click="removeCustomField(i)" title="Remove">&times;</button>
+          </div>
+          <button class="add-field-btn" @click="addCustomField">+ Add custom field</button>
+
+          <div class="section-label">Notes</div>
+          <div class="form-row" style="margin-bottom:0;">
+            <textarea v-model="state.drawer.notes" placeholder="Anything else worth noting — where a document is kept, who to ask, special instructions…"></textarea>
+          </div>
+        </div>
+        <div class="drawer-foot">
+          <button class="btn ghost" @click="closeDrawer" style="flex:1;justify-content:center;">Cancel</button>
+          <button class="btn primary" @click="saveDrawer" style="flex:1;justify-content:center;">Save entry</button>
+        </div>
+      </div>
+    </template>
+
+    <!-- SET PASSWORD MODAL -->
+    <div class="modal-wrap" v-if="state.showSetPw">
+      <div class="modal-bg" @click="state.showSetPw=false"></div>
+      <div class="modal">
+        <div class="lock-icon">&#128274;</div>
+        <h3>Set a master password</h3>
+        <p>This encrypts everything stored in this browser using AES-256. The password is never saved anywhere — if you forget it, the data can't be recovered, so keep it somewhere safe.</p>
+        <input type="password" v-model="state.newPw" placeholder="New master password" />
+        <input type="password" v-model="state.newPw2" placeholder="Confirm password" />
+        <p class="error" v-if="state.pwError">{{ state.pwError }}</p>
+        <div class="btn-row">
+          <button class="btn ghost" @click="state.showSetPw=false; state.pwError=''">Cancel</button>
+          <button class="btn primary" @click="setMasterPassword">Encrypt vault</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHANGE / MANAGE PASSWORD MODAL -->
+    <div class="modal-wrap" v-if="state.showChangePw">
+      <div class="modal-bg" @click="state.showChangePw=false"></div>
+      <div class="modal">
+        <div class="lock-icon">&#128274;</div>
+        <h3>Vault is encrypted</h3>
+        <p>Set a new password below, or remove encryption entirely.</p>
+        <input type="password" v-model="state.newPw" placeholder="New master password" />
+        <input type="password" v-model="state.newPw2" placeholder="Confirm new password" />
+        <p class="error" v-if="state.pwError">{{ state.pwError }}</p>
+        <div class="btn-row">
+          <button class="btn ghost" style="margin-right:auto;color:var(--danger);" @click="state.showChangePw=false; state.showRemovePwConfirm=true">Remove encryption</button>
+          <button class="btn ghost" @click="state.showChangePw=false; state.pwError=''">Cancel</button>
+          <button class="btn primary" @click="changeMasterPassword">Update</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- REMOVE PASSWORD MODAL -->
+    <div class="modal-wrap" v-if="state.showRemovePwConfirm">
+      <div class="modal-bg" @click="state.showRemovePwConfirm=false"></div>
+      <div class="modal">
+        <h3>Remove encryption?</h3>
+        <p>Confirm your current password. Your data will then be stored unencrypted on this device.</p>
+        <input type="password" v-model="state.curPwForRemove" placeholder="Current master password" />
+        <p class="error" v-if="state.removePwError">{{ state.removePwError }}</p>
+        <div class="btn-row">
+          <button class="btn ghost" @click="state.showRemovePwConfirm=false">Cancel</button>
+          <button class="btn danger" @click="removeMasterPassword">Remove encryption</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPORT WARNING (unencrypted) -->
+    <div class="modal-wrap" v-if="state.showExportWarn">
+      <div class="modal-bg" @click="state.showExportWarn=false"></div>
+      <div class="modal">
+        <h3>Export as readable file?</h3>
+        <p>Your vault isn't encrypted, so this backup file will contain everything in plain, readable text — including any passwords or account numbers. Store it somewhere private, or set a master password first for an encrypted backup instead.</p>
+        <div class="btn-row">
+          <button class="btn ghost" @click="state.showExportWarn=false">Cancel</button>
+          <button class="btn primary" @click="doExport">Export anyway</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMPORT: password prompt for encrypted file -->
+    <div class="modal-wrap" v-if="state.importPending && state.importPending.encrypted && !state.showImportModeModal">
+      <div class="modal-bg" @click="state.importPending=null"></div>
+      <div class="modal">
+        <h3>This backup is encrypted</h3>
+        <p>Enter the master password that was used when this backup ({{ state.importFileMeta && state.importFileMeta.name }}) was exported.</p>
+        <input type="password" v-model="state.importPw" placeholder="Backup password" @keyup.enter="decryptImportAndProceed" />
+        <p class="error" v-if="state.importPwError">{{ state.importPwError }}</p>
+        <div class="btn-row">
+          <button class="btn ghost" @click="state.importPending=null">Cancel</button>
+          <button class="btn primary" @click="decryptImportAndProceed">Continue</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMPORT: merge or replace -->
+    <div class="modal-wrap" v-if="state.showImportModeModal">
+      <div class="modal-bg" @click="state.showImportModeModal=false"></div>
+      <div class="modal">
+        <h3>How should this be imported?</h3>
+        <p>You can add these entries alongside what's already here, or replace everything currently in the vault with the backup's contents.</p>
+        <div class="btn-row" style="justify-content:stretch;">
+          <button class="btn" style="flex:1;justify-content:center;" @click="finalizeImport('merge')">Merge</button>
+          <button class="btn danger" style="flex:1;justify-content:center;" @click="finalizeImport('replace')">Replace all</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" v-if="state.toast">{{ state.toast }}</div>
+  </div>
+  `
+};
+
+createApp(App).mount('#app');
+</script>
+</body>
+</html>
