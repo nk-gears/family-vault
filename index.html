@@ -508,6 +508,7 @@ const DEFAULT_CATEGORIES = [
 
 /* ============================== Crypto helpers ============================== */
 const STORAGE_KEY = 'familyEmergencyVault.v1';
+const SYNC_SETTINGS_KEY = 'familyEmergencyVault.sync.v1';
 let sessionKey = null; // CryptoKey, in-memory only, never persisted
 
 function randomBytes(n){ return crypto.getRandomValues(new Uint8Array(n)); }
@@ -567,6 +568,8 @@ const App = {
       newPw: '', newPw2: '', pwError: '',
       curPwForRemove: '', removePwError: '',
       showExportWarn: false,
+      showCloudSync: false,
+      cloudSync: { enabled:false, webAppUrl:'', secret:'', syncing:false, lastSyncedAt:null, error:'', testResult:'' },
       importFileMeta: null,
       importPending: null, // parsed wrapper object awaiting decryption/merge decision
       importPw: '', importPwError: '',
@@ -620,16 +623,99 @@ const App = {
         record = { encrypted:false, data: plaintext };
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(record));
+      syncToCloud(record);
+    }
+
+    /* ---------- Google Sheet cloud sync ---------- */
+    function loadSyncSettings(){
+      try{
+        const raw = localStorage.getItem(SYNC_SETTINGS_KEY);
+        if (raw){
+          const parsed = JSON.parse(raw);
+          state.cloudSync.enabled = !!parsed.enabled;
+          state.cloudSync.webAppUrl = parsed.webAppUrl || '';
+          state.cloudSync.secret = parsed.secret || '';
+        }
+      }catch(e){}
+    }
+    function saveSyncSettings(){
+      localStorage.setItem(SYNC_SETTINGS_KEY, JSON.stringify({
+        enabled: state.cloudSync.enabled, webAppUrl: state.cloudSync.webAppUrl, secret: state.cloudSync.secret
+      }));
+    }
+    async function fetchRemoteRecord(){
+      const url = new URL(state.cloudSync.webAppUrl);
+      if (state.cloudSync.secret) url.searchParams.set('key', state.cloudSync.secret);
+      const res = await fetch(url.toString(), { method:'GET' });
+      if (!res.ok) throw new Error('bad_status');
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
+      return json.empty ? null : json.record;
+    }
+    async function pushRemoteRecord(record){
+      const res = await fetch(state.cloudSync.webAppUrl, {
+        method:'POST',
+        headers: { 'Content-Type':'text/plain;charset=utf-8' },
+        body: JSON.stringify({ record, updatedAt: Date.now(), secretKey: state.cloudSync.secret || '' })
+      });
+      const json = await res.json().catch(()=>({}));
+      if (json.error) throw new Error(json.error);
+    }
+    function syncToCloud(record){
+      if (!state.cloudSync.enabled || !state.cloudSync.webAppUrl) return;
+      state.cloudSync.syncing = true;
+      pushRemoteRecord(record).then(()=>{
+        state.cloudSync.syncing = false;
+        state.cloudSync.lastSyncedAt = Date.now();
+        state.cloudSync.error = '';
+      }).catch(()=>{
+        state.cloudSync.syncing = false;
+        state.cloudSync.error = 'Last change could not be synced to the Google Sheet. It is saved on this device and will retry on the next change.';
+      });
+    }
+    async function testCloudConnection(){
+      state.cloudSync.testResult = 'Testing…';
+      try{
+        await fetchRemoteRecord();
+        state.cloudSync.testResult = 'Connected successfully.';
+      }catch(e){
+        state.cloudSync.testResult = 'Could not connect. Check the Web App URL, deployment access, and secret key.';
+      }
+    }
+    function saveCloudSyncSettings(){
+      saveSyncSettings();
+      state.showCloudSync = false;
+      showToast('Cloud sync settings saved');
+      if (state.cloudSync.enabled && state.loaded) persist();
     }
 
     async function loadFromStorage(){
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw){
+      loadSyncSettings();
+      let record = null;
+      if (state.cloudSync.enabled && state.cloudSync.webAppUrl){
+        state.cloudSync.syncing = true;
+        try{
+          const remote = await fetchRemoteRecord();
+          if (remote){
+            record = remote;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(record));
+            state.cloudSync.lastSyncedAt = Date.now();
+            state.cloudSync.error = '';
+          }
+        }catch(e){
+          state.cloudSync.error = 'Could not reach the Google Sheet — showing the last copy saved on this device.';
+        }
+        state.cloudSync.syncing = false;
+      }
+      if (!record){
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw){ try{ record = JSON.parse(raw); }catch(e){ record = null; } }
+      }
+      if (!record){
         state.loaded = true;
+        if (state.cloudSync.error) showToast(state.cloudSync.error);
         return;
       }
-      let record;
-      try{ record = JSON.parse(raw); } catch(e){ state.loaded = true; return; }
       if (record.encrypted){
         state.isEncrypted = true;
         state.salt = record.salt;
@@ -639,6 +725,7 @@ const App = {
         applyPayload(record.data);
         state.loaded = true;
       }
+      if (state.cloudSync.error) showToast(state.cloudSync.error);
     }
 
     async function attemptUnlock(){
@@ -946,6 +1033,7 @@ const App = {
       triggerExport, doExport, fileInputRef, pickImportFile, onImportFile,
       decryptImportAndProceed, finalizeImport,
       upcomingRenewals, relativeLabel,
+      testCloudConnection, saveCloudSyncSettings,
     };
   },
   template: `
@@ -1019,7 +1107,11 @@ const App = {
           <span class="lock-dot" :class="state.isEncrypted ? 'on' : 'off'"></span>
           <span>{{ state.isEncrypted ? 'Encrypted with master password' : 'Not encrypted — tap to secure' }}</span>
         </div>
-        Stored only in this browser. Nothing leaves this device.
+        <div class="lock-pill" @click="state.showCloudSync=true">
+          <span class="lock-dot" :class="state.cloudSync.enabled ? 'on' : 'off'"></span>
+          <span>{{ state.cloudSync.enabled ? (state.cloudSync.syncing ? 'Syncing to Google Sheet…' : 'Synced to Google Sheet') : 'Cloud sync off' }}</span>
+        </div>
+        {{ state.cloudSync.enabled ? 'Also backed up automatically to your Google Sheet.' : 'Stored only in this browser. Nothing leaves this device.' }}
       </div>
     </aside>
     <div v-if="state.sidebarOpen" class="overlay" style="z-index:45;" @click="state.sidebarOpen=false"></div>
@@ -1294,6 +1386,43 @@ const App = {
         <div class="btn-row">
           <button class="btn ghost" @click="state.showRemovePwConfirm=false">Cancel</button>
           <button class="btn danger" @click="removeMasterPassword">Remove encryption</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLOUD SYNC MODAL -->
+    <div class="modal-wrap" v-if="state.showCloudSync">
+      <div class="modal-bg" @click="state.showCloudSync=false"></div>
+      <div class="modal" style="max-width:460px;">
+        <h3>Cloud sync (Google Sheet)</h3>
+        <p>Automatically keep a copy of your vault in a Google Sheet via a script you control — no manual export needed. Only the encrypted blob is ever sent; Google never sees plain values as long as a master password is set.</p>
+
+        <div class="banner danger" v-if="!state.isEncrypted" style="margin-bottom:12px;">
+          <span>&#128274;</span>
+          <div>Set a master password first. Without one, the vault would be synced to the sheet as plain, readable text.</div>
+        </div>
+
+        <div class="form-row">
+          <label>Apps Script Web App URL</label>
+          <input type="text" v-model="state.cloudSync.webAppUrl" placeholder="https://script.google.com/macros/s/.../exec" />
+        </div>
+        <div class="form-row">
+          <label>Secret key <span class="hint">(optional, must match the script's SECRET_KEY property)</span></label>
+          <input type="text" v-model="state.cloudSync.secret" placeholder="Leave blank if not using one" />
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px;">
+          <input type="checkbox" v-model="state.cloudSync.enabled" :disabled="!state.isEncrypted || !state.cloudSync.webAppUrl" />
+          Enable automatic sync on every change
+        </label>
+
+        <p v-if="state.cloudSync.lastSyncedAt" style="font-size:12px;color:var(--muted);margin:0 0 6px;">Last synced {{ new Date(state.cloudSync.lastSyncedAt).toLocaleString() }}</p>
+        <p v-if="state.cloudSync.error" class="error">{{ state.cloudSync.error }}</p>
+        <p v-if="state.cloudSync.testResult" style="font-size:12.5px;color:var(--focus);margin:0 0 8px;">{{ state.cloudSync.testResult }}</p>
+
+        <div class="btn-row">
+          <button class="btn ghost" style="margin-right:auto;" @click="testCloudConnection" :disabled="!state.cloudSync.webAppUrl">Test connection</button>
+          <button class="btn ghost" @click="state.showCloudSync=false">Cancel</button>
+          <button class="btn primary" @click="saveCloudSyncSettings">Save</button>
         </div>
       </div>
     </div>
